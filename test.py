@@ -2,14 +2,18 @@ import cv2
 import mediapipe as mp
 import numpy as np
 
+#intialization 
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose  
 bicep_curl_count = 0
+situp_curl_count = 0
 up_phase = True 
+situp_phase = True
 elbow_flexion_threshold = 90 
 elbow_extension_threshold = 150
 
 
+# functions
 def calculate_angle(a, b, c):
     a = np.array(a)
     b = np.array(b)
@@ -20,6 +24,18 @@ def calculate_angle(a, b, c):
     if(angle > 180.0):
         angle = 360 - angle
     return angle
+
+
+def calculate_situp_angle(left_hip, left_knee, left_ankle, right_hip, right_knee, right_ankle):
+    left_leg_angle = calculate_angle(left_hip, left_knee, left_ankle)
+    right_leg_angle = calculate_angle(right_hip, right_knee, right_ankle)
+
+    situp_angle = (left_leg_angle + right_leg_angle) / 2.0
+
+    return situp_angle
+
+
+
 
 cap = cv2.VideoCapture(0)
 
@@ -39,7 +55,7 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
         try:
             landmarks = results.pose_landmarks.landmark
 
-            # Get coordinates
+            # Get co-ordinates for biceps
             shoulder = [landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER].x, landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER].y]
             elbow = [landmarks[mp_pose.PoseLandmark.LEFT_ELBOW].x, landmarks[mp_pose.PoseLandmark.LEFT_ELBOW].y]
             wrist = [landmarks[mp_pose.PoseLandmark.LEFT_WRIST].x, landmarks[mp_pose.PoseLandmark.LEFT_WRIST].y]
@@ -48,7 +64,7 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
             relbow = [landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW].x, landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW].y]
             rwrist = [landmarks[mp_pose.PoseLandmark.RIGHT_WRIST].x, landmarks[mp_pose.PoseLandmark.RIGHT_WRIST].y]
 
-            #get cooridates of Situps
+            #get co-oridates of Situps
 
             lhip = [landmarks[mp_pose.PoseLandmark.LEFT_HIP].x, landmarks[mp_pose.PoseLandmark.LEFT_HIP].y]
             lknee = [landmarks[mp_pose.PoseLandmark.LEFT_KNEE].x, landmarks[mp_pose.PoseLandmark.LEFT_KNEE].y]
@@ -60,37 +76,44 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
 
 
 
-
-            # Calculate angle
+            # Calculate angle and conditions
+            
             angle = calculate_angle(shoulder, elbow, wrist)
             rangle = calculate_angle(rshoulder, relbow, rwrist)
-            angleknee = calculate_angle(lhip,lknee,lankle)
-            rangleknee = calculate_angle(rhip,rknee,rankle)
 
-
+            #condition for biceps
+            
             if angle < elbow_flexion_threshold and rangle < elbow_flexion_threshold and up_phase:
                 up_phase = False
             elif angle > elbow_extension_threshold and rangle > elbow_extension_threshold and not up_phase:
                 up_phase = True  
                 bicep_curl_count += 1  
 
-            
+            #Condition for situps
 
+            situp_angle = calculate_situp_angle(
+                lhip, lknee, lankle, rhip, rknee, rankle)
+            
+            if situp_angle < 100:  
+                situp_phase = True
+            elif situp_angle > 150 and situp_phase:
+                situp_phase = False
+                situp_curl_count += 1
+
+            
             # Visualize
             angle_text = f"left elbow Angle: {angle:.2f} degrees" 
             rangle_text = f"right elbow Angle: {rangle:.2f} degrees"  
-            angle_knee_text = f"left knee Angle: {angleknee:.2f} degrees" 
-            rangle_knee_text = f"right knee Angle: {rangleknee:.2f} degrees"  
             count_text = f"Bicep Curls: {bicep_curl_count}"
-            cv2.putText(image, count_text, (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1)
+            situp_count_text = f"Sit-ups: {situp_curl_count}"
+            cv2.putText(image, situp_count_text, (20, 120), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1)
+            #cv2.putText(image, count_text, (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1)
             # cv2.putText(image, angle_text, (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1)
             # cv2.putText(image, rangle_text, (20, 20), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1)
 
             # Print coordinates
             # print(f"Shoulder: {shoulder}, Elbow: {elbow}, Wrist: {wrist}")
-            # print(f"left-elbow-angle : {angle_text} , right-elbow-angle:{rangle_text}")
-            # print(f"bicep curl count :{count_text}")
-            print(f"left-knee-angle : {angle_knee_text} , right-knee-angle:{rangle_knee_text}")
+            print(f"{situp_count_text}")
 
         except:
             pass
