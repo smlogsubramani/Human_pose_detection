@@ -1,7 +1,6 @@
 import cv2
 import mediapipe as mp
 import numpy as np
-# import math
 
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose  
@@ -49,9 +48,25 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
             relbow = [landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW].x, landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW].y]
             rwrist = [landmarks[mp_pose.PoseLandmark.RIGHT_WRIST].x, landmarks[mp_pose.PoseLandmark.RIGHT_WRIST].y]
 
+            #get cooridates of Situps
+
+            lhip = [landmarks[mp_pose.PoseLandmark.LEFT_HIP].x, landmarks[mp_pose.PoseLandmark.LEFT_HIP].y]
+            lknee = [landmarks[mp_pose.PoseLandmark.LEFT_KNEE].x, landmarks[mp_pose.PoseLandmark.LEFT_KNEE].y]
+            lankle = [landmarks[mp_pose.PoseLandmark.LEFT_ANKLE].x, landmarks[mp_pose.PoseLandmark.LEFT_ANKLE].y]
+
+            rhip = [landmarks[mp_pose.PoseLandmark.RIGHT_HIP].x, landmarks[mp_pose.PoseLandmark.RIGHT_HIP].y]
+            rknee = [landmarks[mp_pose.PoseLandmark.RIGHT_KNEE].x, landmarks[mp_pose.PoseLandmark.RIGHT_KNEE].y]
+            rankle = [landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE].x, landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE].y]
+
+
+
+
             # Calculate angle
             angle = calculate_angle(shoulder, elbow, wrist)
             rangle = calculate_angle(rshoulder, relbow, rwrist)
+            angleknee = calculate_angle(lhip,lknee,lankle)
+            rangleknee = calculate_angle(rhip,rknee,rankle)
+
 
             if angle < elbow_flexion_threshold and rangle < elbow_flexion_threshold and up_phase:
                 up_phase = False
@@ -64,6 +79,8 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
             # Visualize
             angle_text = f"left elbow Angle: {angle:.2f} degrees" 
             rangle_text = f"right elbow Angle: {rangle:.2f} degrees"  
+            angle_knee_text = f"left knee Angle: {angleknee:.2f} degrees" 
+            rangle_knee_text = f"right knee Angle: {rangleknee:.2f} degrees"  
             count_text = f"Bicep Curls: {bicep_curl_count}"
             cv2.putText(image, count_text, (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1)
             # cv2.putText(image, angle_text, (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1)
@@ -72,7 +89,9 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
             # Print coordinates
             # print(f"Shoulder: {shoulder}, Elbow: {elbow}, Wrist: {wrist}")
             # print(f"left-elbow-angle : {angle_text} , right-elbow-angle:{rangle_text}")
-            print(f"bicep curl count :{count_text}")
+            # print(f"bicep curl count :{count_text}")
+            print(f"left-knee-angle : {angle_knee_text} , right-knee-angle:{rangle_knee_text}")
+
         except:
             pass
 
